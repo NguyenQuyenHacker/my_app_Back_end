@@ -4,7 +4,7 @@ from datetime import datetime
 
 from sqlmodel import SQLModel, Field
 
-from models.enums import CardStatus
+from app.models.enums import CardStatus
 
 
 class Card(SQLModel, table=True):

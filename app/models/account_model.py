@@ -5,7 +5,7 @@ from typing import Optional
 
 from sqlmodel import SQLModel, Field
 
-from models.enums import AccountStatus
+from app.models.enums import AccountStatus
 
 
 class Account(SQLModel, table=True):

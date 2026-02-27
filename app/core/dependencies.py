@@ -1,4 +1,7 @@
-# /app/core/dependencies.py
+
+from typing import Annotated
+import uuid
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -7,42 +10,40 @@ from sqlmodel import Session, select
 from app.core.security import SECRET_KEY, ALGORITHM
 from app.db.database import get_session
 from app.models.customer_model import Customer
-import uuid
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
+SessionDep = Annotated[Session, Depends(get_session)]
+
+
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    session: Session = Depends(get_session),
+    token: Annotated[str, Depends(oauth2_scheme)],
+    session: SessionDep,
 ) -> Customer:
+    unauthorized = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid authentication credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        customer_id: uuid.UUID | None = payload.get("sub")
-
-        if customer_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token decode failed",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        sub = payload.get("sub")
+        if not sub:
+            raise unauthorized
+        customer_id = uuid.UUID(sub)
+    except (JWTError, ValueError):
+        raise unauthorized
 
     customer = session.exec(
-        select(Customer).where(Customer.customer_id == uuid.UUID(customer_id))
+        select(Customer).where(Customer.customer_id == customer_id)
     ).first()
 
-    if customer is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    if not customer:
+        raise unauthorized
 
     return customer
+
+
+CurrentUserDep = Annotated[Customer, Depends(get_current_user)]
