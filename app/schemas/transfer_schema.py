@@ -1,33 +1,52 @@
-from pydantic import BaseModel
-from uuid import UUID
-from typing import Optional
+import uuid
 from datetime import datetime
+from decimal import Decimal
+from typing import Optional
 
-class TransferCreate(BaseModel):
-    from_account_id: UUID
-    to_account_no: str
-    to_bank_code: Optional[str] = None
-    to_name: Optional[str] = None
-    type: str  # INTERNAL/INTERBANK
-    amount: float
-    currency: str = "VND"
-    note: Optional[str] = None
-    idempotency_key: Optional[str] = None
+from sqlmodel import SQLModel
 
-class TransferOut(BaseModel):
-    transfer_id: UUID
-    customer_id: UUID
-    from_account_id: UUID
-    to_account_no: str
-    to_bank_code: Optional[str] = None
-    to_name: Optional[str] = None
-    type: str
-    status: str
-    amount: float
-    currency: str
-    fee_amount: float
+
+class TransferCreate(SQLModel):
+    sender_account_id: Optional[uuid.UUID] = None
+    receiver_account_id: Optional[uuid.UUID] = None
+
+    sender_bank_name: Optional[str] = None
+    sender_name: Optional[str] = None
+    sender_account_no: Optional[str] = None
+
+    receiver_bank_name: str
+    receiver_name: str
+    receiver_account_no: str
+
+    amount: Decimal
+    description: Optional[str] = None
+    reference_no: Optional[str] = None
+    otp: Optional[str] = None
+
+
+class TransferRead(SQLModel):
+    transfer_id: uuid.UUID
+    sender_account_id: Optional[uuid.UUID] = None
+    receiver_account_id: Optional[uuid.UUID] = None
+    sender_bank_name: Optional[str] = None
+    sender_name: Optional[str] = None
+    sender_account_no: Optional[str] = None
+    receiver_bank_name: str
+    receiver_name: str
+    receiver_account_no: str
+    amount: Decimal
+    description: Optional[str] = None
+    reference_no: Optional[str] = None
     created_at: datetime
-    updated_at: datetime
+    executed_at: datetime
 
-    class Config:
-        from_attributes = True
+
+class EntryRead(SQLModel):
+    entry_id: uuid.UUID
+    transfer_id: uuid.UUID
+    account_id: uuid.UUID
+    amount: Decimal
+    balance_before: Decimal
+    balance_after: Decimal
+    note: Optional[str] = None
+    created_at: datetime

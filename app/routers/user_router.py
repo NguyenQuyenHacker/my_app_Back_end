@@ -8,7 +8,7 @@ from app.models.customer_model import Customer
 from app.db.database import get_session
 
 router = APIRouter()
-
+  
 
 @router.get("/customer")
 def get_dashboard(

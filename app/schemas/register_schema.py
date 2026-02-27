@@ -6,7 +6,7 @@ class RegisterRequest(BaseModel):
     full_name: str
     cccd_number: str
     date_of_birth: date
-    gender: str  # MALE/FEMALE/OTHER
+    gender: str  # MALE/FEMALE
 
     permanent_address: str
     current_address: str
