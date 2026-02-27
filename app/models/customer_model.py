@@ -7,7 +7,7 @@ from sqlalchemy import Column, Text, Date, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import Enum as SAEnum
 
-from .enums import GenderType
+from app.models.enums import GenderType
 
 class Customer(SQLModel, table=True):
     __tablename__ = "customers"

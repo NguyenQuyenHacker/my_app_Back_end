@@ -1,8 +1,8 @@
+# src/models/account_model.py
 import uuid
-from datetime import datetime
+from datetime import datetime   
 from decimal import Decimal
 from typing import Optional
-
 from sqlmodel import SQLModel, Field
 
 from app.models.enums import AccountStatus
