@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "app-agent"
+version = "0.1.0"
+description = "LangGraph agent project"
+requires-python = ">=3.11"
+dependencies = [
+    "langchain",
+    "langgraph",
+    "langchain-google-genai",
+    "langchain-postgres",
+    "psycopg[binary]",
+    "pgvector",
+    "asyncpg"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["my_agent*"]

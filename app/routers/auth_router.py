@@ -56,11 +56,19 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 @router.post("/login")
 def login(data: UserLogin, session: Session = Depends(get_session)):
+    customer = session.exec(
+        select(Customer).where(Customer.phone == data.phone)
+    ).first()
 
-    customer = session.exec(select(Customer).where(Customer.phone == data.phone)).first()
-    user = session.exec(select(User).where(User.customer_id == customer.customer_id)).first()
     if not customer:
         raise HTTPException(status_code=400, detail="Phone not found")
+
+    user = session.exec(
+        select(User).where(User.customer_id == customer.customer_id)
+    ).first()
+
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
 
     if not pwd_context.verify(data.password, user.password_hash):
         raise HTTPException(status_code=400, detail="Wrong password")
