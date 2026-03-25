@@ -9,7 +9,7 @@ from app.models.account_model import Account
 from app.models.customer_model import Customer
 from app.models.ledger_model import Entry
 from app.models.transfer_model import Transfer
-from app.schemas.transfer_schema import TransferCreateRequest
+from app.schemas.client.transfer_schema import TransferCreateRequest
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

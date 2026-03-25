@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 from app.core.dependencies import get_current_user
 from app.models.customer_model import Customer
 from app.db.database import get_session
-from app.services.customer_service import build_customer_overview
+from app.services.client.customer_service import build_customer_overview
 from app.core.dependencies import CurrentUserDep, SessionDep
 
 router = APIRouter()

@@ -1,0 +1,91 @@
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlmodel import Session
+
+from app.core.dependencies import CurrentUserDep
+from app.db.database import get_session
+from app.schemas.client.user_thread_schema import (
+    UserThreadRead,
+    UserThreadCreate,
+    UserThreadUpdateTitle,
+)
+from app.services.client.user_thread_service import (
+    create_user_thread,
+    get_owned_thread,
+    get_user_id_from_customer_id,
+    list_threads_by_user,
+    update_thread_title,
+)
+
+router = APIRouter(prefix="/chat/threads", tags=["chat-threads"])
+
+
+@router.get("", response_model=list[UserThreadRead])
+def get_my_threads(
+    current_customer: CurrentUserDep,
+    session: Session = Depends(get_session),
+):
+    user_id = get_user_id_from_customer_id(session, current_customer.customer_id)
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return list_threads_by_user(session, user_id)
+
+
+@router.post("", response_model=UserThreadRead, status_code=status.HTTP_201_CREATED)
+def create_thread_mapping(
+    data: UserThreadCreate,
+    current_customer: CurrentUserDep,
+    session: Session = Depends(get_session),
+):
+    user_id = get_user_id_from_customer_id(session, current_customer.customer_id)
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return create_user_thread(
+        session=session,
+        user_id=user_id,
+        thread_id=data.thread_id,
+        title=data.title,
+    )
+
+
+@router.get("/{thread_id}", response_model=UserThreadRead)
+def get_my_thread(
+    thread_id: uuid.UUID,
+    current_customer: CurrentUserDep,
+    session: Session = Depends(get_session),
+):
+    user_id = get_user_id_from_customer_id(session, current_customer.customer_id)
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    row = get_owned_thread(session, user_id, thread_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    return row
+
+
+@router.patch("/{thread_id}", response_model=UserThreadRead)
+def rename_my_thread(
+    thread_id: uuid.UUID,
+    data: UserThreadUpdateTitle,
+    current_customer: CurrentUserDep,
+    session: Session = Depends(get_session),
+):
+    user_id = get_user_id_from_customer_id(session, current_customer.customer_id)
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    row = update_thread_title(
+        session=session,
+        user_id=user_id,
+        thread_id=thread_id,
+        title=data.title,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    return row

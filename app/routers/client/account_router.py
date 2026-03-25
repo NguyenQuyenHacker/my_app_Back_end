@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.core.dependencies import CurrentUserDep, SessionDep
-from app.services.account_service import get_account_overview_data
+from app.services.client.account_service import get_account_overview_data
 
 router = APIRouter()
 
