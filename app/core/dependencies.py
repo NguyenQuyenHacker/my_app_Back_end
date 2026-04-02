@@ -1,4 +1,3 @@
-# app/core/dependencies.py
 from typing import Annotated
 import uuid
 
@@ -10,9 +9,11 @@ from sqlmodel import Session, select
 from app.core.security import SECRET_KEY, ALGORITHM
 from app.db.database import get_session
 from app.models.customer_model import Customer
+from app.models.admin_model import Admin
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
+admin_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="admin/login")
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
@@ -30,8 +31,14 @@ def get_current_user(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         sub = payload.get("sub")
+        role = payload.get("role")
+
         if not sub:
             raise unauthorized
+
+        if role and role != "client":
+            raise unauthorized
+
         customer_id = uuid.UUID(sub)
     except (JWTError, ValueError):
         raise unauthorized
@@ -46,4 +53,43 @@ def get_current_user(
     return customer
 
 
+def get_current_admin(
+    token: Annotated[str, Depends(admin_oauth2_scheme)],
+    session: SessionDep,
+) -> Admin:
+    unauthorized = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid admin authentication credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        sub = payload.get("sub")
+        role = payload.get("role")
+
+        if not sub:
+            raise unauthorized
+
+        if role != "admin":
+            raise unauthorized
+
+        admin_id = uuid.UUID(sub)
+    except (JWTError, ValueError):
+        raise unauthorized
+
+    admin = session.exec(
+        select(Admin).where(Admin.admin_id == admin_id)
+    ).first()
+
+    if not admin:
+        raise unauthorized
+
+    if not admin.is_active:
+        raise unauthorized
+
+    return admin
+
+
 CurrentUserDep = Annotated[Customer, Depends(get_current_user)]
+CurrentAdminDep = Annotated[Admin, Depends(get_current_admin)]

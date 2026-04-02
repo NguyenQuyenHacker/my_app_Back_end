@@ -39,7 +39,7 @@ from app.models.customer_model import Customer
 #         "user_id": new_user.id
 #     }
 
-# routers/auth_router.py
+# routers/auth_client_router.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from passlib.context import CryptContext
