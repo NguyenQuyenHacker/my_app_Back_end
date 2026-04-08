@@ -61,19 +61,25 @@ def login(data: UserLogin, session: Session = Depends(get_session)):
     ).first()
 
     if not customer:
-        raise HTTPException(status_code=400, detail="Phone not found")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
     user = session.exec(
         select(User).where(User.customer_id == customer.customer_id)
     ).first()
 
-    if not user:
-        raise HTTPException(status_code=400, detail="User not found")
+    if not user or not pwd_context.verify(data.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    if not pwd_context.verify(data.password, user.password_hash):
-        raise HTTPException(status_code=400, detail="Wrong password")
+    if not user.is_active:
+        raise HTTPException(
+            status_code=401, 
+            detail="ACCOUNT_LOCKED"
+        )
 
-    access_token = create_access_token({"sub": str(customer.customer_id)})
+    access_token = create_access_token({
+        "sub": str(customer.customer_id),
+        "role": "client"
+    })
 
     return {
         "access_token": access_token,

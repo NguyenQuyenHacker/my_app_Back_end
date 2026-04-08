@@ -1,3 +1,4 @@
+from app.db.database import get_session_admin
 from typing import Annotated
 import uuid
 
@@ -11,11 +12,11 @@ from app.db.database import get_session
 from app.models.customer_model import Customer
 from app.models.admin_model import Admin
 
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 admin_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="admin/login")
 
 SessionDep = Annotated[Session, Depends(get_session)]
+SessionAdminDep = Annotated[Session, Depends(get_session_admin)]
 
 
 def get_current_user(
@@ -36,7 +37,7 @@ def get_current_user(
         if not sub:
             raise unauthorized
 
-        if role and role != "client":
+        if role != "client":
             raise unauthorized
 
         customer_id = uuid.UUID(sub)
@@ -55,7 +56,7 @@ def get_current_user(
 
 def get_current_admin(
     token: Annotated[str, Depends(admin_oauth2_scheme)],
-    session: SessionDep,
+    session: SessionAdminDep,
 ) -> Admin:
     unauthorized = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
