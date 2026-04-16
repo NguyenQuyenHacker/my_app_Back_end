@@ -5,6 +5,8 @@ from sqlmodel import Session, select
 
 from app.models.user_thread_model import UserThread
 from app.models.user_model import User
+from app.core.constants import AGENT_URL
+import httpx
 
 
 def utc_now() -> datetime:
@@ -51,6 +53,37 @@ def create_user_thread(
     session.commit()
     session.refresh(row)
     return row
+
+
+async def initialize_new_thread(
+    session: Session,
+    user_id: uuid.UUID,
+    title: str | None = None,
+) -> UserThread:
+    """
+    1. Gọi LangGraph Agent để tạo thread_id mới
+    2. Lưu mapping vào DB
+    """
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(f"{AGENT_URL}/threads", json={})
+            response.raise_for_status()
+            data = response.json()
+            thread_id = data.get("thread_id")
+            
+            if not thread_id:
+                raise ValueError("AI Agent không trả về thread_id")
+                
+            # Lưu vào DB sử dụng hàm có sẵn
+            return create_user_thread(
+                session=session,
+                user_id=user_id,
+                thread_id=uuid.UUID(thread_id),
+                title=title
+            )
+        except httpx.HTTPError as e:
+            # Bạn có thể log lỗi ở đây nếu cần
+            raise RuntimeError(f"Lỗi khi kết nối với AI Agent: {str(e)}")
 
 
 def get_owned_thread(

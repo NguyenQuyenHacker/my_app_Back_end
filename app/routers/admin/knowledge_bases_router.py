@@ -6,15 +6,19 @@ from app.schemas.admin.knowledge_bases_schema import (
     KnowledgeBaseRead, 
     KnowledgeBaseConfigUpdate, 
     KnowledgeBaseDocumentRead,
-    KnowledgeBaseCreate
+    KnowledgeBaseCreate,
+    KnowledgeBaseToggleStatus,
+    KnowledgeBaseUpdate
 )
-from app.services.admin.knowledge_bases_service import (
-    get_all_knowledge_bases, 
-    get_documents_by_kb_id_service, 
-    update_kb_config_service,
-    create_knowledge_base_service
-)
-from app.services.admin.knowledge_bases_rag_service import upload_document_to_kb_service
+from app.services.admin.knowledge_base.management.get_all_kbs import get_all_knowledge_bases
+from app.services.admin.knowledge_base.management.create_knowledge_base import create_knowledge_base_service
+from app.services.admin.knowledge_base.management.update_kb_config import update_kb_config_service
+from app.services.admin.knowledge_base.management.get_documents_by_kb import get_documents_by_kb_id_service
+from app.services.admin.knowledge_base.management.delete_kb_document import delete_kb_document_service
+from app.services.admin.knowledge_base.management.toggle_kb_status import toggle_kb_status_service
+from app.services.admin.knowledge_base.management.update_kb_metadata import update_kb_metadata_service
+from app.services.admin.knowledge_base.rag.upload_document_pipeline import upload_document_to_kb_service
+from app.services.admin.knowledge_base.management.get_document_chunks import get_document_chunks_service
 from fastapi import UploadFile, File, Form
 from app.core.dependencies import get_current_admin
 from app.models.admin_model import Admin
@@ -22,7 +26,6 @@ router = APIRouter(
     prefix="/admin/knowledge-bases",
     tags=["Admin Knowledge Bases"],
 )
-
 
 @router.get("", response_model=list[KnowledgeBaseRead])
 def read_knowledge_bases(
@@ -104,6 +107,40 @@ def update_kb_config(
         }
     }
 
+@router.patch("/{kb_id}/toggle", response_model=dict)
+def toggle_knowledge_base_status(
+    kb_id: UUID,
+    payload: KnowledgeBaseToggleStatus,
+    session: Session = Depends(get_session_admin),
+    current_admin: Admin = Depends(get_current_admin),
+):
+    kb = toggle_kb_status_service(session, kb_id, payload.is_active)
+    return {
+        "message": "Trạng thái Knowledge Base đã được cập nhật",
+        "data": {
+            "kb_id": kb.kb_id,
+            "is_active": kb.is_active,
+            "updated_at": kb.updated_at
+        }
+    }
+
+@router.patch("/{kb_id}", response_model=dict)
+def update_knowledge_base_metadata(
+    kb_id: UUID,
+    payload: KnowledgeBaseUpdate,
+    session: Session = Depends(get_session_admin),
+    current_admin: Admin = Depends(get_current_admin),
+):
+    kb = update_kb_metadata_service(session, kb_id, payload)
+    return {
+        "message": "Cập nhật thông tin Knowledge Base thành công",
+        "data": {
+            "kb_id": kb.kb_id,
+            "name": kb.name,
+            "description": kb.description,
+            "updated_at": kb.updated_at
+        }
+    }
 
 def validate_upload_document_input(file: UploadFile, chunk_size: int, chunk_overlap: int) -> None:
     if not file.filename:
@@ -165,6 +202,23 @@ def upload_document_to_kb(
         "message": "Upload document successfully.",
         "data": new_doc_data
     }
+
+@router.delete("/{kb_id}/documents/{document_id}")
+def delete_kb_document(
+    kb_id: UUID,
+    document_id: UUID,
+    session: Session = Depends(get_session_admin),
+):
+    return delete_kb_document_service(session, kb_id, document_id)
+
+
+@router.get("/{kb_id}/documents/{document_id}/chunks")
+def get_document_chunks(
+    kb_id: UUID,
+    document_id: UUID,
+    session: Session = Depends(get_session_admin),
+):
+    return get_document_chunks_service(session, kb_id, document_id)
 
 
 

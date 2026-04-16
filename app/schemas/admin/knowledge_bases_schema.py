@@ -21,6 +21,14 @@ class KnowledgeBaseRead(BaseModel):
     chunk_size: int
     chunk_overlap: int
     updated_at: datetime
+    is_active: bool
+
+class KnowledgeBaseToggleStatus(BaseModel):
+    is_active: bool
+
+class KnowledgeBaseUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=255)
+    description: Optional[str] = None
 
 class KnowledgeBaseDocumentRead(BaseModel):
     document_id: UUID

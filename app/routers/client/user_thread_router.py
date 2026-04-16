@@ -16,6 +16,7 @@ from app.services.client.user_thread_service import (
     get_user_id_from_customer_id,
     list_threads_by_user,
     update_thread_title,
+    initialize_new_thread,
 )
 
 router = APIRouter(prefix="/chat/threads", tags=["chat-threads"])
@@ -49,6 +50,21 @@ def create_thread_mapping(
         thread_id=data.thread_id,
         title=data.title,
     )
+
+
+@router.post("/init", response_model=UserThreadRead, status_code=status.HTTP_201_CREATED)
+async def init_chat_thread(
+    current_customer: CurrentUserDep,
+    session: Session = Depends(get_session),
+):
+    user_id = get_user_id_from_customer_id(session, current_customer.customer_id)
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    try:
+        return await initialize_new_thread(session, user_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{thread_id}", response_model=UserThreadRead)

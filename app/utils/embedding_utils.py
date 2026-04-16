@@ -1,7 +1,7 @@
 import os
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-os.environ["GOOGLE_API_KEY"] = "AIzaSyDWN-7ifGNliL093NjlyjY19GhZwcNXwXI"
+os.environ["GOOGLE_API_KEY"] = "AIzaSyCE5nj-w477uODkLcNxPVSPFm8T6sG-UUo"
 
 
 
