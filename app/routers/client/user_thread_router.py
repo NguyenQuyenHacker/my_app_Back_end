@@ -17,6 +17,7 @@ from app.services.client.user_thread_service import (
     list_threads_by_user,
     update_thread_title,
     initialize_new_thread,
+    delete_thread_service,
 )
 
 router = APIRouter(prefix="/chat/threads", tags=["chat-threads"])
@@ -82,6 +83,20 @@ def get_my_thread(
         raise HTTPException(status_code=404, detail="Thread not found")
 
     return row
+
+@router.delete("/{thread_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_my_thread(
+    thread_id: uuid.UUID,
+    current_customer: CurrentUserDep,
+    session: Session = Depends(get_session),
+):
+    user_id = get_user_id_from_customer_id(session, current_customer.customer_id)
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    success = await delete_thread_service(session, user_id, thread_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Thread not found")
 
 
 @router.patch("/{thread_id}", response_model=UserThreadRead)

@@ -55,6 +55,34 @@ def create_user_thread(
     return row
 
 
+async def delete_thread_service(
+    session: Session,
+    user_id: uuid.UUID,
+    thread_id: uuid.UUID,
+):
+    """
+    1. Xóa ở AI Agent
+    2. Xóa ở Postgres
+    """
+    row = get_owned_thread(session, user_id, thread_id)
+    if not row:
+        return False
+        
+    # Xóa khỏi AI Agent
+    async with httpx.AsyncClient() as client:
+        try:
+            res = await client.delete(f"{AGENT_URL}/threads/{thread_id}")
+            res.raise_for_status()
+        except httpx.HTTPError as e:
+            # Ngay cả khi xóa ở AI lỗi (có thể bị xóa trước đó), vẫn xoá DB
+            print(f"Warning: Failed to delete at AI Agent: {e}")
+
+    # Xóa DB
+    session.delete(row)
+    session.commit()
+    return True
+
+
 async def initialize_new_thread(
     session: Session,
     user_id: uuid.UUID,
