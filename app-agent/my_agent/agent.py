@@ -1,16 +1,17 @@
+# app-agent/my_agent/agent.py
 import os
 import sys
 import asyncio
 
 from langchain.agents import create_agent
-from langchain.agents.middleware import SummarizationMiddleware
+from langchain.agents.middleware import SummarizationMiddleware, HumanInTheLoopMiddleware
 from langchain_core.messages.utils import count_tokens_approximately
 from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 
 # Import các tài nguyên từ src (Sử dụng Absolute Import chuẩn hóa)
 from my_agent.src.config import llm, system_prompt_content, GOOGLE_API_KEY
-from my_agent.src.tools import list_available_knowledge_bases, retrieve_context
+from my_agent.src.tool import list_available_knowledge_bases, retrieve_context, create_transfer_request
 
 
 class TechcombankAgent:
@@ -21,7 +22,9 @@ class TechcombankAgent:
         """
         self.model = llm
         self.system_prompt = system_prompt_content
-        self.tools = [list_available_knowledge_bases, retrieve_context]
+        print(f"DEBUG: System Prompt Loaded (Length: {len(self.system_prompt)})")
+        print(f"DEBUG: Prompt Preview: {self.system_prompt[:100]}...")
+        self.tools = [list_available_knowledge_bases, retrieve_context, create_transfer_request]
         
         # Khởi tạo mô hình chuyên biệt để tóm tắt
         self.summary_model = ChatGoogleGenerativeAI(
@@ -43,6 +46,13 @@ class TechcombankAgent:
                     keep=("messages", 4),
                     token_counter=count_tokens_approximately,
                     trim_tokens_to_summarize=None,
+                ),
+                HumanInTheLoopMiddleware(
+                    interrupt_on={
+                        "create_transfer_request": {
+                            "allowed_decisions": ["edit", "reject", "approve"]
+                        },
+                    }
                 )
             ],
         )

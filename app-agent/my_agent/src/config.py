@@ -45,9 +45,12 @@ def load_system_prompt() -> str:
     prompt_path = os.path.join(os.path.dirname(current_dir), "prompts", "system_prompt.md")
     
     try:
+        print(f"DEBUG: Attempting to load prompt from: {prompt_path}")
         if os.path.exists(prompt_path):
             with open(prompt_path, "r", encoding="utf-8") as f:
-                return f.read()
+                content = f.read()
+                print(f"DEBUG: Prompt file found. Size: {len(content)} bytes.")
+                return content
         else:
             print(f"Warning: Prompt file not found at {prompt_path}")
     except Exception as e:
@@ -56,3 +59,4 @@ def load_system_prompt() -> str:
     return "You are an intelligent assistant."
 
 system_prompt_content = load_system_prompt()
+# Force reload 4

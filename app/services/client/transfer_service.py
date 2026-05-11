@@ -47,7 +47,19 @@ def create_transfer_service(
 
     now = datetime.utcnow()
 
-    transfer = Transfer(**payload.dict(), created_at=now, executed_at=now)
+    transfer = Transfer(
+        sender_account_id=account.account_id,
+        sender_bank_name=account.bank_name,
+        sender_name=current_user.full_name,
+        sender_account_no=account.account_no,
+        receiver_bank_name=payload.receiver_bank_name,
+        receiver_name=payload.receiver_name,
+        receiver_account_no=payload.receiver_account_no,
+        amount=payload.amount,
+        description=payload.description,
+        created_at=now,
+        executed_at=now,
+    )
     session.add(transfer)
     session.flush()
 

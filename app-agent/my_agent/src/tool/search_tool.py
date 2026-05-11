@@ -1,3 +1,4 @@
+# app-agent/my_agent/src/tool/search_tool.py
 from sqlalchemy import create_engine, text
 from langchain.tools import tool
 from langchain_postgres import PGVectorStore, PGEngine
@@ -5,7 +6,7 @@ from langchain_postgres import PGVectorStore, PGEngine
 try:
     from my_agent.src.config import VECTOR_DB_URL, SCHEMA_NAME, embedding_service
 except ImportError:
-    from .config import VECTOR_DB_URL, SCHEMA_NAME, embedding_service
+    from ..config import VECTOR_DB_URL, SCHEMA_NAME, embedding_service
 
 # =========================
 # LAZY VECTOR STORE
