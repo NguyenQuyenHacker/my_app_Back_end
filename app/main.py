@@ -6,10 +6,17 @@ import sys
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-from app.routers.client import user_router, account_router, transfer_router, user_thread_router,auth_client_router, agent_proxy_router
+from app.routers.client import customer_info_router, customer_home_router, account_router, transfer_router, user_thread_router,auth_client_router, agent_proxy_router, settings_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers.admin import auth_admin_router, admin_user_bar_router,knowledge_bases_router
+from app.jobs.reconcile_processing_job import reconcile_loop
+
 app = FastAPI()
+
+
+@app.on_event("startup")
+async def _start_reconcile_job() -> None:
+    asyncio.create_task(reconcile_loop())
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -18,12 +25,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_client_router.router) 
-app.include_router(user_router.router)
+app.include_router(auth_client_router.router)
+app.include_router(customer_info_router.router)
+app.include_router(customer_home_router.router)
 app.include_router(account_router.router)
 app.include_router(transfer_router.router)
 app.include_router(user_thread_router.router)
 app.include_router(agent_proxy_router.router)
+app.include_router(settings_router.router)
 
 app.include_router(auth_admin_router.router)
 app.include_router(admin_user_bar_router.router)

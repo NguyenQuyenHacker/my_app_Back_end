@@ -30,5 +30,9 @@ class Customer(SQLModel, table=True):
     email: str | None = Field(default=None, sa_column=Column(Text, unique=True))
     phone: str = Field(sa_column=Column(Text, nullable=False, unique=True))
 
+    identity_issue_date: date | None = Field(default=None, sa_column=Column(Date))
+    identity_expiry_date: date | None = Field(default=None, sa_column=Column(Date))
+    identity_issue_place: str | None = Field(default=None, sa_column=Column(Text))
+
     created_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False))
     updated_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False))

@@ -40,18 +40,27 @@ from app.models.customer_model import Customer
 #     }
 
 # routers/auth_client_router.py
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from passlib.context import CryptContext
 from app.db.database import get_session
 from app.models.customer_model import Customer
 from app.schemas.auth_schema import UserLogin
+from app.schemas.client.register_schema import RegisterRequest, RegisterResponse
+from app.services.client.register_service import register_customer
 from app.core.security import create_access_token
 from app.models.user_model import User
 
-router = APIRouter()
+router = APIRouter(tags=["auth-client"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+@router.post("/register", response_model=RegisterResponse, status_code=201)
+def register(data: RegisterRequest, session: Session = Depends(get_session)):
+    return register_customer(session, data)
 
 
 @router.post("/login")
@@ -72,9 +81,13 @@ def login(data: UserLogin, session: Session = Depends(get_session)):
 
     if not user.is_active:
         raise HTTPException(
-            status_code=401, 
+            status_code=401,
             detail="ACCOUNT_LOCKED"
         )
+
+    user.last_login_at = datetime.now(timezone.utc)
+    session.add(user)
+    session.commit()
 
     access_token = create_access_token({
         "sub": str(customer.customer_id),

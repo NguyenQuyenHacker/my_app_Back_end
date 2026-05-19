@@ -18,6 +18,9 @@ class Account(SQLModel, table=True):
     status: AccountStatus
     currency: str = Field(max_length=3)
     balance: Decimal = Field(default=Decimal("0.00"), max_digits=18, decimal_places=2)
+    hold_amount: Decimal = Field(default=Decimal("0.00"), max_digits=18, decimal_places=2)
+    daily_limit: Decimal = Field(default=Decimal("500000000.00"), max_digits=18, decimal_places=2)
+    monthly_limit: Decimal = Field(default=Decimal("5000000000.00"), max_digits=18, decimal_places=2)
     otp_hash: str
     opened_at: datetime
     closed_at: Optional[datetime] = None
