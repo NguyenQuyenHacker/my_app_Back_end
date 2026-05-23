@@ -29,6 +29,9 @@ class TransactionStatus(str, enum.Enum):
 class TransferType(str, enum.Enum):
     INTERNAL = "INTERNAL"
     EXTERNAL = "EXTERNAL"
+    SAVINGS_DEPOSIT = "SAVINGS_DEPOSIT"
+    SAVINGS_MATURITY = "SAVINGS_MATURITY"
+    SAVINGS_EARLY_WITHDRAWAL = "SAVINGS_EARLY_WITHDRAWAL"
 
 
 class LedgerSide(str, enum.Enum):
@@ -44,3 +47,11 @@ class ExternalBankAccountStatus(str, enum.Enum):
 class SystemAccountCode(str, enum.Enum):
     SUSPENSE = "SUSPENSE"
     CLEARING = "CLEARING"
+    SAVINGS_POOL = "SAVINGS_POOL"
+    INTEREST_EXPENSE = "INTEREST_EXPENSE"
+
+
+class SavingsAccountStatus(str, enum.Enum):
+    ACTIVE = "ACTIVE"
+    MATURED = "MATURED"
+    WITHDRAWN_EARLY = "WITHDRAWN_EARLY"

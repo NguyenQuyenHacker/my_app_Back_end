@@ -14,7 +14,10 @@ dependencies = [
     "langchain-postgres",
     "psycopg[binary]",
     "pgvector",
-    "asyncpg"
+    "asyncpg",
+    "sqlalchemy",
+    "requests",
+    "pydantic",
 ]
 
 [tool.setuptools.packages.find]

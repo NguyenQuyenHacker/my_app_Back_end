@@ -3,30 +3,31 @@ from sqlalchemy import create_engine, text
 from langchain.tools import tool
 from langchain_postgres import PGVectorStore, PGEngine
 
-try:
-    from my_agent.src.config import VECTOR_DB_URL, SCHEMA_NAME, embedding_service
-except ImportError:
-    from ..config import VECTOR_DB_URL, SCHEMA_NAME, embedding_service
+from my_agent.src.config import VECTOR_DB_URL, SCHEMA_NAME, embedding_service
 
 # =========================
-# LAZY VECTOR STORE
+# SHARED ENGINES (module-level singletons)
 # =========================
+_sa_engine = create_engine(VECTOR_DB_URL, pool_pre_ping=True)
+_pg_engine: PGEngine | None = None
 _vector_stores: dict[str, PGVectorStore] = {}
 
 
+def _get_pg_engine() -> PGEngine:
+    global _pg_engine
+    if _pg_engine is None:
+        _pg_engine = PGEngine.from_connection_string(VECTOR_DB_URL)
+    return _pg_engine
+
+
 def get_vector_store(table_name: str) -> PGVectorStore:
-    global _vector_stores
-
     if table_name not in _vector_stores:
-        engine = PGEngine.from_connection_string(VECTOR_DB_URL)
-
         _vector_stores[table_name] = PGVectorStore.create_sync(
-            engine=engine,
+            engine=_get_pg_engine(),
             table_name=table_name,
             schema_name=SCHEMA_NAME,
             embedding_service=embedding_service,
         )
-
     return _vector_stores[table_name]
 
 
@@ -37,23 +38,21 @@ def get_vector_store(table_name: str) -> PGVectorStore:
 def list_available_knowledge_bases() -> str:
     """Trả về danh sách các Knowledge Base có sẵn (chỉ bao gồm Tên bảng và Mô tả)."""
     try:
-        engine = create_engine(VECTOR_DB_URL)
-        with engine.connect() as conn:
+        with _sa_engine.connect() as conn:
             query = text("SELECT table_name, description FROM knowledge_bases WHERE is_active = true")
             result = conn.execute(query).fetchall()
-        
-        if not result:
-            return "Hiện tại không có Knowledge Base nào đang hoạt động."
-            
-        blocks = ["Danh sách các Knowledge Base hiện có:"]
-        for row in result:
-            t_name, desc = row
-            desc_text = desc if desc else "Không có mô tả"
-            blocks.append(f"- Tên bảng (table_name): '{t_name}' | Mô tả: '{desc_text}'")
-            
-        return "\n".join(blocks)
     except Exception as e:
         return f"Lỗi khi lấy danh sách Knowledge Base: {str(e)}"
+
+    if not result:
+        return "Hiện tại không có Knowledge Base nào đang hoạt động."
+
+    blocks = ["Danh sách các Knowledge Base hiện có:"]
+    for t_name, desc in result:
+        desc_text = desc if desc else "Không có mô tả"
+        blocks.append(f"- Tên bảng (table_name): '{t_name}' | Mô tả: '{desc_text}'")
+
+    return "\n".join(blocks)
 
 
 @tool
@@ -73,9 +72,6 @@ def retrieve_context(query: str, kb_table_name: str) -> str:
         file_name = doc.metadata.get("file_name", "unknown")
         chunk_index = doc.metadata.get("chunk_index", "unknown")
         content = doc.page_content.strip()
-
-        blocks.append(
-            f"[Nguồn {i}] file={file_name}, chunk={chunk_index}\n{content}"
-        )
+        blocks.append(f"[Nguồn {i}] file={file_name}, chunk={chunk_index}\n{content}")
 
     return "\n\n".join(blocks)

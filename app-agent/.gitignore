@@ -1,0 +1,14 @@
+# LangGraph dev server local state
+.langgraph_api/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Env
+.env
+.env.*
+!.env.example

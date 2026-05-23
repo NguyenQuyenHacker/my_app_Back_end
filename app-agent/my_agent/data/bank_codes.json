@@ -1,0 +1,16 @@
+{
+  "TCB":  { "name": "Techcombank",  "aliases": ["techcombank", "tcb", "techcom", "tech com bank", "techcombak"] },
+  "VCB":  { "name": "Vietcombank",  "aliases": ["vietcombank", "vcb", "vietcom", "viet com bank", "vietcomback"] },
+  "BIDV": { "name": "BIDV",         "aliases": ["bidv", "bidv bank", "ngan hang dau tu phat trien"] },
+  "VTB":  { "name": "VietinBank",   "aliases": ["vietinbank", "vtb", "vietin", "vtinbank"] },
+  "MB":   { "name": "MB Bank",      "aliases": ["mb", "mbbank", "mb bank", "ngan hang quan doi"] },
+  "ACB":  { "name": "ACB",          "aliases": ["acb", "a chau", "achau", "ngan hang a chau"] },
+  "TPB":  { "name": "TPBank",       "aliases": ["tpbank", "tpb", "tp bank", "tien phong"] },
+  "VPB":  { "name": "VPBank",       "aliases": ["vpbank", "vpb", "vp bank", "viet thinh phat"] },
+  "AGB":  { "name": "Agribank",     "aliases": ["agribank", "agb", "ngan hang nong nghiep"] },
+  "SHB":  { "name": "SHB",          "aliases": ["shb", "sai gon ha noi"] },
+  "STB":  { "name": "Sacombank",    "aliases": ["sacombank", "stb"] },
+  "HDB":  { "name": "HDBank",       "aliases": ["hdbank", "hdb", "hd bank"] },
+  "OCB":  { "name": "OCB",          "aliases": ["ocb"] },
+  "MSB":  { "name": "MSB",          "aliases": ["msb", "maritime bank"] }
+}

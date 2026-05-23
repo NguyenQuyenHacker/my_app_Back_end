@@ -8,8 +8,11 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.models.account_model import Account
-from app.models.enums import AccountStatus, TransactionStatus
+from app.models.enums import AccountStatus, TransactionStatus, TransferType
 from app.models.transaction_model import Transaction
+
+
+_TRANSFER_LIMIT_TYPES = [TransferType.INTERNAL, TransferType.EXTERNAL]
 
 
 def utcnow() -> datetime:
@@ -46,6 +49,7 @@ def ensure_sufficient_balance(account: Account, amount: Decimal) -> None:
 def _sum_today(session: Session, account_id: uuid.UUID) -> Decimal:
     stmt = select(func.coalesce(func.sum(Transaction.amount), 0)).where(
         Transaction.from_account_id == account_id,
+        Transaction.transfer_type.in_(_TRANSFER_LIMIT_TYPES),
         Transaction.status.in_([TransactionStatus.PENDING, TransactionStatus.PROCESSING, TransactionStatus.SUCCESS]),
         func.date(Transaction.created_at) == func.current_date(),
     )
@@ -56,6 +60,7 @@ def _sum_today(session: Session, account_id: uuid.UUID) -> Decimal:
 def _sum_this_month(session: Session, account_id: uuid.UUID) -> Decimal:
     stmt = select(func.coalesce(func.sum(Transaction.amount), 0)).where(
         Transaction.from_account_id == account_id,
+        Transaction.transfer_type.in_(_TRANSFER_LIMIT_TYPES),
         Transaction.status.in_([TransactionStatus.PENDING, TransactionStatus.PROCESSING, TransactionStatus.SUCCESS]),
         func.date_trunc("month", Transaction.created_at) == func.date_trunc("month", func.current_timestamp()),
     )
