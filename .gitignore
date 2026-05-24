@@ -11,10 +11,8 @@ env/
 
 # Environment variables
 .env
-.env.local
-.env.*.local
-.env.development
-.env.production
+.env.*
+!.env.example
 
 # IDEs / Editor
 .idea/
@@ -40,3 +38,7 @@ build/
 
 # Misc
 .cache/
+
+# Database backups / SQL dumps
+*.sql
+*.dump

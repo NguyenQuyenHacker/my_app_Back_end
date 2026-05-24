@@ -10,10 +10,9 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
     raise ValueError("Missing GOOGLE_API_KEY")
 
-VECTOR_DB_URL = os.getenv(
-    "VECTOR_DB_URL",
-    "postgresql+psycopg://fastapi_user:123456@host.docker.internal:5434/banking_db",
-)
+VECTOR_DB_URL = os.getenv("VECTOR_DB_URL")
+if not VECTOR_DB_URL:
+    raise RuntimeError("Missing required environment variable: VECTOR_DB_URL")
 
 SCHEMA_NAME = os.getenv("VECTOR_SCHEMA_NAME", "public")
 
@@ -22,7 +21,7 @@ SCHEMA_NAME = os.getenv("VECTOR_SCHEMA_NAME", "public")
 # EMBEDDING
 # =========================
 embedding_service = GoogleGenerativeAIEmbeddings(
-    model="models/gemini-embedding-001",
+    model="gemini-embedding-001",
     google_api_key=GOOGLE_API_KEY,
 )
 
