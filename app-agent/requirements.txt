@@ -1,0 +1,23 @@
+# LangChain ecosystem (versions khớp với BE)
+langchain==1.2.12
+langchain-core==1.2.19
+langchain-google-genai==4.2.1
+langchain-postgres==0.0.17
+
+# LangGraph + CLI runtime
+langgraph
+langgraph-cli[inmem]
+langgraph-api
+
+# Database / Vector
+psycopg[binary]==3.3.3
+pgvector==0.3.6
+asyncpg==0.31.0
+SQLAlchemy==2.0.48
+
+# HTTP client (tools gọi BE)
+requests
+
+# Validation
+pydantic==2.12.5
+python-dotenv

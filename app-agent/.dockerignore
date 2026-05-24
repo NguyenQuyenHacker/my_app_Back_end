@@ -1,0 +1,34 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# LangGraph dev state
+.langgraph_api/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# Virtual envs
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Docs / docker
+*.md
+Dockerfile
+.dockerignore
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
