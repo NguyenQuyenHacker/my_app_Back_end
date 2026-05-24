@@ -1,3 +1,4 @@
 # app/core/constants.py
+import os
 
-AGENT_URL = "http://localhost:8123"
+AGENT_URL = os.getenv("AGENT_URL", "http://localhost:8123")

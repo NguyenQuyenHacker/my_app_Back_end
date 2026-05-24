@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 import asyncio
+import os
 import sys
 
 # Quan trọng cho Windows + psycopg để sửa lỗi ProactorEventLoop
@@ -23,9 +24,15 @@ async def _start_reconcile_job() -> None:
 @app.on_event("startup")
 async def _start_savings_maturity_job() -> None:
     asyncio.create_task(maturity_loop())
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

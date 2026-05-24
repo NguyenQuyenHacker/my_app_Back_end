@@ -15,7 +15,7 @@ def _extract_documents_from_upload_file(file: UploadFile):
     try:
         # Load tùy extension
         if file_extension == ".pdf":
-            loader = UnstructuredPDFLoader(temp_file_path)
+            loader = UnstructuredPDFLoader(temp_file_path, strategy="fast")
         elif file_extension in [".doc", ".docx"]:
             loader = UnstructuredWordDocumentLoader(temp_file_path)
         else:

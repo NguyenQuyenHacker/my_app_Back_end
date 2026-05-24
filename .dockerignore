@@ -1,0 +1,65 @@
+# =========================================
+# .dockerignore — file gì KHÔNG copy vào image
+# =========================================
+
+# Secrets — CỰC KỲ QUAN TRỌNG, không bao giờ bake vào image
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python bytecode / cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Documentation (không cần trong runtime image)
+*.md
+docs/
+
+# Backup / temp
+*.bak
+*.tmp
+*.log
+logs/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.coverage
+htmlcov/
+coverage.xml
+
+# Service Agent (build riêng, không gói vào image BE)
+app-agent/
+
+# Docker files (không cần copy vào image)
+Dockerfile
+.dockerignore
+
+# Test artifacts
+tests/
+test_*.py
+*_test.py
