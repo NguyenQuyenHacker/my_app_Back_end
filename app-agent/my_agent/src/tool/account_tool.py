@@ -31,18 +31,16 @@ def _fmt_dt(value: str) -> str:
 # TOOL 1: GET ACCOUNT BALANCE
 # =========================
 class GetAccountBalanceInput(BaseModel):
-    pass
+    reason: Optional[str] = Field(
+        default=None,
+        description="Lookup reason (optional, leave empty if none).",
+    )
 
 
 @tool("get_account_balance", args_schema=GetAccountBalanceInput)
-def get_account_balance(*, config: RunnableConfig = None) -> str:
-    """
-    Tra cứu số dư tài khoản chính của khách hàng đang đăng nhập.
-    Dùng khi khách hỏi: "số dư", "tài khoản còn bao nhiêu", "kiểm tra tài khoản",
-    "available balance", "tôi còn bao nhiêu tiền"...
-    KHÔNG cần input — tool tự lấy thông tin khách từ JWT trong session.
-    Trả về: số tài khoản, số dư hiện tại, số tiền đang phong toả, số tiền có thể sử dụng, trạng thái.
-    """
+def get_account_balance(reason: Optional[str] = None, *, config: RunnableConfig = None) -> str:
+    """Look up the logged-in customer's main account balance. Needs NO input (reads the JWT).
+    Returns: account number, current balance, held amount, available balance, status."""
     jwt_token = get_jwt(config)
     if not jwt_token:
         return "Lỗi: Không tìm thấy JWT token để xác thực."
@@ -89,27 +87,27 @@ def get_account_balance(*, config: RunnableConfig = None) -> str:
 class GetTransactionHistoryInput(BaseModel):
     limit: int = Field(
         default=5, ge=1, le=20,
-        description="Số giao dịch tối đa trả về (mặc định 5, tối đa 20).",
+        description="Max transactions to return (default 5, max 20).",
     )
     direction: Literal["IN", "OUT", "ALL"] = Field(
         default="ALL",
-        description="IN = tiền vào (người khác chuyển cho khách); OUT = tiền ra (khách chuyển đi); ALL = cả hai.",
+        description="IN = money received; OUT = money sent; ALL = both.",
     )
     date_from: Optional[str] = Field(
         default=None,
-        description="Ngày bắt đầu, định dạng YYYY-MM-DD. Bỏ trống nếu khách không nêu mốc thời gian.",
+        description="Start date YYYY-MM-DD; empty if no time range.",
     )
     date_to: Optional[str] = Field(
         default=None,
-        description="Ngày kết thúc, định dạng YYYY-MM-DD (inclusive). Bỏ trống nếu khách không nêu mốc thời gian.",
+        description="End date YYYY-MM-DD inclusive; empty if no time range.",
     )
     min_amount: Optional[float] = Field(
         default=None, ge=0,
-        description="Lọc giao dịch có số tiền >= min_amount (VND). VD: 'trên 5 triệu' -> 5000000.",
+        description="Only amount >= this (VND). E.g. 'trên 5 triệu' -> 5000000.",
     )
     max_amount: Optional[float] = Field(
         default=None, ge=0,
-        description="Lọc giao dịch có số tiền <= max_amount (VND).",
+        description="Only amount <= this (VND).",
     )
 
 
@@ -124,22 +122,10 @@ def get_transaction_history(
     *,
     config: RunnableConfig = None,
 ) -> str:
-    """
-    Tra cứu lịch sử giao dịch THÀNH CÔNG của khách hàng đang đăng nhập.
-    Dùng khi khách hỏi: "lịch sử giao dịch", "giao dịch gần đây", "ai chuyển cho tôi",
-    "tôi đã chuyển những gì", "tháng X tôi giao dịch gì", "giao dịch trên N đồng"...
-
-    Mapping ngôn ngữ tự nhiên -> tham số:
-    - "gần đây" / không nêu rõ -> limit=5, direction=ALL
-    - "ai chuyển cho tôi" / "tiền vào" -> direction=IN
-    - "tôi đã chuyển" / "tiền ra" -> direction=OUT
-    - "tháng 4" -> date_from='YYYY-04-01', date_to='YYYY-04-30' (dùng năm hiện tại trong system prompt)
-    - "tuần này" -> tính từ thứ Hai gần nhất đến hôm nay
-    - "trên N đồng" -> min_amount=N
-    - "dưới N đồng" -> max_amount=N
-
-    KHÔNG cần input nào bắt buộc — gọi không tham số sẽ trả 5 giao dịch gần nhất.
-    """
+    """Look up the logged-in customer's SUCCESSFUL transaction history.
+    Returns matching transactions (datetime, direction, amount, counterparty, description).
+    Call with no arguments for the 5 most recent. See the system prompt for mapping
+    Vietnamese time/amount phrases to the parameters below."""
     jwt_token = get_jwt(config)
     if not jwt_token:
         return "Lỗi: Không tìm thấy JWT token để xác thực."

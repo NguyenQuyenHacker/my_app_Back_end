@@ -14,8 +14,6 @@ def build_customer_home(customer: Customer) -> dict:
                 "title": "Giao dịch",
                 "icon": "history",
                 "to": "/customer/transfer",
-                "desc": "Lịch sử 30 ngày",
-                "new_count": 12,
             },
             "loans": {
                 "title": "Hồ sơ vay",

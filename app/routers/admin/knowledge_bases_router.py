@@ -17,6 +17,7 @@ from app.services.admin.knowledge_base.management.get_documents_by_kb import get
 from app.services.admin.knowledge_base.management.delete_kb_document import delete_kb_document_service
 from app.services.admin.knowledge_base.management.toggle_kb_status import toggle_kb_status_service
 from app.services.admin.knowledge_base.management.update_kb_metadata import update_kb_metadata_service
+from app.services.admin.knowledge_base.management.delete_knowledge_base import delete_knowledge_base_service
 from app.services.admin.knowledge_base.rag.upload_document_pipeline import upload_document_to_kb_service
 from app.services.admin.knowledge_base.management.get_document_chunks import get_document_chunks_service
 from fastapi import UploadFile, File, Form
@@ -123,6 +124,15 @@ def toggle_knowledge_base_status(
             "updated_at": kb.updated_at
         }
     }
+
+@router.delete("/{kb_id}", response_model=dict)
+def delete_knowledge_base(
+    kb_id: UUID,
+    session: Session = Depends(get_session_admin),
+    current_admin: Admin = Depends(get_current_admin),
+):
+    return delete_knowledge_base_service(session, kb_id)
+
 
 @router.patch("/{kb_id}", response_model=dict)
 def update_knowledge_base_metadata(

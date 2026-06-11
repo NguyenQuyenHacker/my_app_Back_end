@@ -1,10 +1,16 @@
 # app-agent/my_agent/agent.py
 from langchain.agents import create_agent
-from langchain.agents.middleware import SummarizationMiddleware
+from langchain.agents.middleware import ModelFallbackMiddleware, SummarizationMiddleware
 from langchain_core.messages.utils import count_tokens_approximately
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from my_agent.src.config import llm, system_prompt_content, GOOGLE_API_KEY
+from my_agent.src.config import (
+    llm,
+    llm_fallback_1,
+    llm_fallback_2,
+    system_prompt_content,
+    GOOGLE_API_KEY,
+)
 from my_agent.src.tool import (
     get_account_balance,
     get_transaction_history,
@@ -45,6 +51,7 @@ class TechcombankAgent:
             tools=self.tools,
             system_prompt=self.system_prompt,
             middleware=[
+                ModelFallbackMiddleware(llm_fallback_1, llm_fallback_2),
                 SummarizationMiddleware(
                     model=self.summary_model,
                     trigger=("messages", 14),

@@ -13,14 +13,20 @@ def init_and_store_vectors(session: Session, table_name: str, split_docs: list):
     # Kiểm tra bảng đã tồn tại chưa bằng chính session hiện có (Clean & SQLModel style)
     if not inspect(session.bind).has_table(table_name):
         # Nếu chưa có thì dùng lệnh khởi tạo qua PGEngine
-        pg_engine = PGEngine.from_connection_string(url=DATABASE_URL_ADMIN)
+        pg_engine = PGEngine.from_connection_string(
+            url=DATABASE_URL_ADMIN,
+            connect_args={"prepare_threshold": 0},
+        )
         pg_engine.init_vectorstore_table(
             table_name=table_name,
             vector_size=vector_size,
         )
 
     # Khởi tạo Vector Store
-    pg_engine = PGEngine.from_connection_string(url=DATABASE_URL_ADMIN)
+    pg_engine = PGEngine.from_connection_string(
+        url=DATABASE_URL_ADMIN,
+        connect_args={"prepare_threshold": 0},
+    )
     vector_store = PGVectorStore.create_sync(
         engine=pg_engine,
         table_name=table_name,

@@ -18,9 +18,9 @@ TRANSFER_PENDING_MARKER = "[TRANSFER_PENDING]"
 # =========================
 class LookupRecipientInput(BaseModel):
     bank_input: str = Field(
-        description="Tên hoặc mã ngân hàng người dùng nhập, GIỮ NGUYÊN VĂN khách nói (kể cả viết sai, ví dụ 'Vietcombank', 'vcb', 'tech combank', 'vietcomback'). Tool sẽ tự normalize."
+        description="Bank name or code as entered by the user, passed VERBATIM (even if misspelled, e.g. 'Vietcombank', 'vcb', 'tech combank', 'vietcomback'). The tool normalizes it."
     )
-    account_no: str = Field(description="Số tài khoản người nhận")
+    account_no: str = Field(description="Recipient account number")
 
 
 @tool("lookup_recipient", args_schema=LookupRecipientInput)
@@ -30,13 +30,9 @@ def lookup_recipient(
     *,
     config: RunnableConfig = None,
 ) -> str:
-    """
-    BƯỚC 1 (BẮT BUỘC trước khi chuyển tiền): Xác minh người nhận tồn tại trong DB.
-    - Tự normalize tên ngân hàng (xử lý typo, viết tắt, không dấu) → mã chuẩn.
-    - Tự phân loại internal (TCB) hoặc external dựa trên mã.
-    - Query bảng DB tương ứng (Account cho internal, ExternalBankAccount cho external).
-    Sau khi tool trả về thông tin người nhận, hãy tóm tắt cho khách hàng và CHỜ khách xác nhận trước khi gọi transfer_init.
-    """
+    """STEP 1 (mandatory before a transfer): verify the recipient exists in the DB.
+    Normalizes the bank name/code (typos, abbreviations, no diacritics) and classifies internal (TCB) vs external.
+    After it returns the recipient info, summarize for the customer and WAIT for confirmation before transfer_init."""
     bank_code = normalize_bank_code(bank_input)
     if not bank_code:
         supported = ", ".join(f"{c} ({BANK_CODES[c]['name']})" for c in BANK_CODES)
@@ -95,11 +91,11 @@ def lookup_recipient(
 # =========================
 class TransferInitInput(BaseModel):
     receiver_bank_code: str = Field(
-        description="Mã ngân hàng người nhận (mã NGẮN, ví dụ TCB / VCB / BIDV). Lấy từ kết quả lookup_recipient."
+        description="Recipient bank code (SHORT code, e.g. TCB / VCB / BIDV). Taken from the lookup_recipient result."
     )
-    receiver_account_no: str = Field(description="Số tài khoản người nhận (lấy từ lookup_recipient)")
-    amount: float = Field(gt=0, description="Số tiền cần chuyển (VNĐ)")
-    description: Optional[str] = Field(default=None, description="Nội dung chuyển khoản")
+    receiver_account_no: str = Field(description="Recipient account number (from lookup_recipient)")
+    amount: float = Field(gt=0, description="Amount to transfer (VND)")
+    description: Optional[str] = Field(default=None, description="Transfer description/note")
 
 
 @tool("transfer_init", args_schema=TransferInitInput)
@@ -111,12 +107,9 @@ def transfer_init(
     *,
     config: RunnableConfig = None,
 ) -> str:
-    """
-    BƯỚC 2 (sau lookup_recipient + khách xác nhận): Khởi tạo phiên chuyển khoản.
-    Tool có normalize defensive lần nữa cho receiver_bank_code phòng trường hợp truyền sai.
-    Sau khi tool trả về thành công, UI sẽ TỰ ĐỘNG hiện form xác nhận + thu OTP.
-    Bạn TUYỆT ĐỐI KHÔNG xin OTP, KHÔNG gọi tool nào nữa, chỉ tóm tắt và chờ kết quả.
-    """
+    """STEP 2 (after lookup_recipient + customer confirmation): initialize the transfer session.
+    On success the UI AUTOMATICALLY shows the confirmation form and collects the OTP.
+    Never ask for the OTP and never call more tools — just summarize and wait for the result."""
     jwt_token = get_jwt(config)
     if not jwt_token:
         return "Lỗi: Không tìm thấy JWT token để xác thực giao dịch."

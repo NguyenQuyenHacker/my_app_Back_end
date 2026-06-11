@@ -3,11 +3,16 @@ from fastapi import HTTPException, UploadFile
 from uuid import UUID
 from datetime import datetime, timezone
 import os
+import traceback
+import logging
 
 from app.models.knowledge_bases_model import KnowledgeBase, KnowledgeBaseDocument, ParsingStatus
 from app.services.admin.knowledge_base.rag.extract_document_content import _extract_documents_from_upload_file
 from app.services.admin.knowledge_base.rag.split_document_chunks import _split_documents
 from app.services.admin.knowledge_base.rag.store_vectors_pg import init_and_store_vectors
+from app.utils.embedding_utils import get_embedding_model
+
+logger = logging.getLogger(__name__)
 
 def upload_document_to_kb_service(
     session: Session, 
@@ -33,13 +38,16 @@ def upload_document_to_kb_service(
         raise HTTPException(status_code=400, detail=f"Văn bản '{file.filename}' đã tồn tại trong Knowledge Base này.")
 
     file_extension = os.path.splitext(file.filename)[1]
-    
+
+    embedding_model = get_embedding_model()
+    vector_size = len(embedding_model.embed_query("hello world"))
+
     # 2. Tạo bản ghi ban đầu với trạng thái processing
     new_doc = KnowledgeBaseDocument(
         kb_id=kb_id,
         file_name=file.filename,
         file_type=file_extension.replace('.', ''),
-        vector_size=1536,
+        vector_size=vector_size,
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
         retrieval_top_k=5,
@@ -94,12 +102,13 @@ def upload_document_to_kb_service(
         session.refresh(new_doc)
         
     except Exception as e:
-        # 8. Ghi nhận lỗi nếu có Exception
+        tb = traceback.format_exc()
+        logger.error("Upload document failed for kb_id=%s file=%s\n%s", kb_id, file.filename, tb)
         new_doc.parsing_status = ParsingStatus.failed
-        new_doc.error_message = str(e)
+        new_doc.error_message = f"{type(e).__name__}: {e}"
         session.add(new_doc)
         session.commit()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e}")
     
     return {
         "document_id": str(new_doc.document_id),

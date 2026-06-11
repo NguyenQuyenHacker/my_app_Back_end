@@ -19,7 +19,7 @@ engine = create_engine(
     DATABASE_URL,
     echo=_ECHO,
     pool_pre_ping=True,
-    pool_recycle=1800,
+    pool_recycle=300,
     pool_size=5,
     max_overflow=10,
 )
@@ -27,9 +27,10 @@ engine_admin = create_engine(
     DATABASE_URL_ADMIN,
     echo=_ECHO,
     pool_pre_ping=True,
-    pool_recycle=1800,
+    pool_recycle=300,
     pool_size=5,
     max_overflow=10,
+    connect_args={"prepare_threshold": 0},
 )
 
 
