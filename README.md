@@ -2,7 +2,7 @@
 
 Backend cho ứng dụng **ngân hàng số tích hợp trợ lý AI**. Xây bằng **FastAPI (Python 3.11)**, cung cấp REST API cho nghiệp vụ ngân hàng và một **AI Agent (RAG chatbot)** tư vấn khách hàng, xây trên **LangGraph + Google Gemini**.
 
-> 🔗 **Frontend:** [`Digital-banking-chatbot-AI-Frontend`](https://github.com/NguyenQuyenHacker/Digital-banking-chatbot-AI-Frontend) — React + Vite.
+> 🔗 **Frontend:** [`ai-chatbot-digital-banking-web-frontend`](https://github.com/NguyenQuyenHacker/ai-chatbot-digital-banking-web-frontend) — React + Vite.
 
 ---
 
@@ -97,8 +97,8 @@ my-app-BE/
 
 ```bash
 # 1. Clone repo về máy
-git clone https://github.com/NguyenQuyenHacker/Digital-banking-chatbot-AI-Backend.git
-cd Digital-banking-chatbot-AI-Backend
+git clone https://github.com/NguyenQuyenHacker/ai-chatbot-digital-banking-web-backend.git
+cd ai-chatbot-digital-banking-web-backend
 
 # 2. Tạo & kích hoạt virtual environment (Python 3.11)
 python -m venv .venv
