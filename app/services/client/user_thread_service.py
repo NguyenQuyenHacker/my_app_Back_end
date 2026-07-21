@@ -5,7 +5,7 @@ from sqlmodel import Session, select
 
 from app.models.user_thread_model import UserThread
 from app.models.user_model import User
-from app.core.constants import AGENT_URL
+from app.core.constants import SERVING_URL
 import httpx
 
 
@@ -67,15 +67,15 @@ async def delete_thread_service(
     row = get_owned_thread(session, user_id, thread_id)
     if not row:
         return False
-        
-    # Xóa khỏi AI Agent
+
+    # Xóa hội thoại ở serving (Agents SDK): session_id = thread_id
     async with httpx.AsyncClient() as client:
         try:
-            res = await client.delete(f"{AGENT_URL}/threads/{thread_id}")
+            res = await client.delete(f"{SERVING_URL}/agent/sessions/{thread_id}")
             res.raise_for_status()
         except httpx.HTTPError as e:
-            # Ngay cả khi xóa ở AI lỗi (có thể bị xóa trước đó), vẫn xoá DB
-            print(f"Warning: Failed to delete at AI Agent: {e}")
+            # Serving lỗi/đã xoá trước đó → vẫn xoá mapping ở DB
+            print(f"Warning: Failed to delete session at serving: {e}")
 
     # Xóa DB
     session.delete(row)
@@ -89,29 +89,16 @@ async def initialize_new_thread(
     title: str | None = None,
 ) -> UserThread:
     """
-    1. Gọi LangGraph Agent để tạo thread_id mới
-    2. Lưu mapping vào DB
+    Agents SDK: session_id do serving tạo lazily ở tin nhắn đầu (SQLAlchemySession),
+    nên BE chỉ cần tự sinh thread_id (uuid4) và lưu mapping — KHÔNG gọi agent server.
     """
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(f"{AGENT_URL}/threads", json={})
-            response.raise_for_status()
-            data = response.json()
-            thread_id = data.get("thread_id")
-            
-            if not thread_id:
-                raise ValueError("AI Agent không trả về thread_id")
-                
-            # Lưu vào DB sử dụng hàm có sẵn
-            return create_user_thread(
-                session=session,
-                user_id=user_id,
-                thread_id=uuid.UUID(thread_id),
-                title=title
-            )
-        except httpx.HTTPError as e:
-            # Bạn có thể log lỗi ở đây nếu cần
-            raise RuntimeError(f"Lỗi khi kết nối với AI Agent: {str(e)}")
+    thread_id = uuid.uuid4()
+    return create_user_thread(
+        session=session,
+        user_id=user_id,
+        thread_id=thread_id,
+        title=title,
+    )
 
 
 def get_owned_thread(

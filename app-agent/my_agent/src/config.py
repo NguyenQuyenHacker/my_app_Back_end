@@ -1,14 +1,11 @@
 import os
 from datetime import date
 
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
     raise ValueError("Missing GOOGLE_API_KEY")
-
-GOOGLE_API_KEY_FALLBACK_1 = os.getenv("GOOGLE_API_KEY_FALLBACK_1") or GOOGLE_API_KEY
-GOOGLE_API_KEY_FALLBACK_2 = os.getenv("GOOGLE_API_KEY_FALLBACK_2") or GOOGLE_API_KEY
 
 VECTOR_DB_URL = os.getenv("VECTOR_DB_URL")
 if not VECTOR_DB_URL:
@@ -23,26 +20,9 @@ embedding_service = GoogleGenerativeAIEmbeddings(
 )
 
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0.2,
-    google_api_key=GOOGLE_API_KEY,
-    thinking_budget=256,  
-)
-
-llm_fallback_1 = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0.2,
-    google_api_key=GOOGLE_API_KEY_FALLBACK_1,
-    thinking_budget=256,
-)
-
-llm_fallback_2 = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0.2,
-    google_api_key=GOOGLE_API_KEY_FALLBACK_2,
-    thinking_budget=256,
-)
+# Model LLM đã chuyển sang Agents SDK (LitellmModel) tại my_agent/agent_sdk.py.
+# Ở đây chỉ còn giữ những gì TOOL cần: GOOGLE_API_KEY, VECTOR_DB_URL, SCHEMA_NAME,
+# embedding_service (search_tool) và system prompt.
 
 
 def load_system_prompt() -> str:
