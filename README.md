@@ -1,6 +1,6 @@
 # AI-Chatbot Digital Banking — API (Backend)
 
-Backend cho ứng dụng **ngân hàng số tích hợp trợ lý AI**. Xây bằng **FastAPI (Python 3.11)**, cung cấp REST API cho nghiệp vụ ngân hàng và một **AI Agent (RAG chatbot)** tư vấn khách hàng, xây trên **LangGraph + Google Gemini**.
+Backend cho ứng dụng **ngân hàng số tích hợp trợ lý AI**. Xây bằng **FastAPI (Python 3.11)**, cung cấp REST API cho nghiệp vụ ngân hàng và một **AI Agent (RAG chatbot)** tư vấn khách hàng, xây trên **OpenAI Agents SDK + Google Gemini**.
 
 > 🔗 **Frontend:** [`ai-chatbot-digital-banking-web-frontend`](https://github.com/NguyenQuyenHacker/ai-chatbot-digital-banking-web-frontend) — React + Vite.
 
@@ -22,20 +22,23 @@ Hệ thống gồm 2 phần chạy độc lập, đều nằm trong repo này:
 
 | Phần | Thư mục | Vai trò |
 |---|---|---|
-| **API server** | `app/` | REST API: auth, tài khoản, chuyển tiền, tiết kiệm, thống kê, knowledge base, proxy tới agent |
-| **AI Agent** | `app-agent/` | LangGraph server: chatbot RAG, gọi Gemini, tìm kiếm ngữ nghĩa trên `pgvector` |
+| **API server** | `app/` | REST API: auth, tài khoản, chuyển tiền, tiết kiệm, thống kê, knowledge base |
+| **AI Agent** | `app-agent/` | Serving FastAPI riêng: chatbot RAG qua WebSocket, gọi Gemini, tìm kiếm ngữ nghĩa trên `pgvector` |
 
 Luồng hoạt động:
 
 ```mermaid
 flowchart LR
     FE["Frontend<br/>(React)"] -- "REST API" --> API["FastAPI<br/>(app/)"]
-    FE -- "Chat streaming" --> AG["LangGraph Agent<br/>(app-agent/)"]
-    API -- "proxy /chat/agent" --> AG
+    FE -- "Chat WebSocket" --> AG["Agent serving<br/>(app-agent/serving/)"]
     AG -- "gọi tool ngược lại" --> API
+    API -- "xoá session khi xoá thread" --> AG
     API --> DB[("PostgreSQL<br/>nghiệp vụ")]
+    AG --> SDB[("PostgreSQL<br/>lịch sử hội thoại")]
     AG --> VDB[("PostgreSQL<br/>+ pgvector (RAG)")]
 ```
+
+> Frontend nói chuyện **thẳng** với agent qua WebSocket (không còn proxy `/chat/agent` qua `app/`).
 
 ## Tech Stack
 
@@ -46,7 +49,9 @@ flowchart LR
 | Database | PostgreSQL + `pgvector` |
 | Driver | psycopg, asyncpg |
 | Auth | JWT (python-jose), bcrypt |
-| AI Agent | LangGraph, LangChain, Google Gemini |
+| AI Agent | OpenAI Agents SDK (LiteLLM → Google Gemini), LangChain (tool + RAG) |
+| Chat streaming | WebSocket (FastAPI) |
+| Lịch sử hội thoại | `SQLAlchemySession` (Agents SDK) trên PostgreSQL |
 | Server | Uvicorn |
 
 ## Project Structure
@@ -57,7 +62,7 @@ my-app-BE/
 │   ├── main.py                 # Khởi tạo app, CORS, mount routers, background jobs
 │   ├── routers/
 │   │   ├── client/             # API khách hàng: auth, account, transfer,
-│   │   │                       #   savings, statistics, quota, agent_proxy...
+│   │   │                       #   savings, statistics, quota, user_thread...
 │   │   └── admin/              # API admin: auth, quản lý user, knowledge base
 │   ├── services/               # Business logic (tách khỏi router)
 │   ├── crud/                   # Thao tác CRUD với DB
@@ -66,16 +71,21 @@ my-app-BE/
 │   ├── schemas/                # Pydantic schemas (request/response)
 │   ├── db/
 │   │   └── database.py         # Engine + session (DB nghiệp vụ & DB admin/vector)
-│   ├── core/                   # Config, constants (AGENT_URL...)
+│   ├── core/                   # Config, constants (SERVING_URL...)
 │   ├── dependencies.py         # Dependency injection (current user, session...)
 │   ├── jobs/                   # Background jobs (reconcile, savings maturity)
 │   └── utils/                  # Helper dùng chung
-├── app-agent/                  # LangGraph AI Agent (chạy riêng)
+├── app-agent/                  # AI Agent (chạy riêng, Agents SDK)
 │   ├── my_agent/
-│   │   ├── agent.py            # Định nghĩa graph
-│   │   ├── src/tool/           # Tools: account, transfer, search
+│   │   ├── agent_sdk.py        # Định nghĩa Agent + 6 function_tool
+│   │   ├── src/
+│   │   │   ├── context.py      # ChatContext — mang JWT vào tool
+│   │   │   └── tool/           # Tools: account, transfer, search
 │   │   └── prompts/            # System prompt
-│   ├── langgraph.json          # Cấu hình LangGraph
+│   ├── serving/                # FastAPI serving agent
+│   │   ├── app.py              # WebSocket chat + REST quản lý session
+│   │   ├── db.py               # Engine cho session store
+│   │   └── sessions.py         # Tạo/liệt kê/xoá hội thoại
 │   └── requirements.txt
 ├── scripts/                    # SQL phụ trợ (savings, transfer_sessions)
 ├── requirements.txt
@@ -87,9 +97,10 @@ my-app-BE/
 ## Prerequisites
 
 - **Python 3.11**
-- **PostgreSQL** — 2 database:
+- **PostgreSQL** — 3 database (có thể dùng chung 1 instance):
   - DB nghiệp vụ chính (`DATABASE_URL`)
-  - DB cho RAG có bật extension **`pgvector`** (`DATABASE_URL_ADMIN`)
+  - DB cho RAG có bật extension **`pgvector`** (`DATABASE_URL_ADMIN` / `VECTOR_DB_URL`)
+  - DB lưu lịch sử hội thoại của agent (`SESSION_DATABASE_URL`) — bảng do Agents SDK tự tạo
   - > Có thể trỏ tới PostgreSQL cloud (Neon) đã có sẵn bảng, hoặc PostgreSQL cài local.
 - **Google Gemini API key** — lấy tại https://aistudio.google.com/apikey
 
@@ -135,12 +146,12 @@ Sau khi chạy:
 | `GOOGLE_API_KEY` | ✅ | Google Gemini API key |
 | `JWT_SECRET_KEY` | ✅ | Secret ký JWT (chuỗi ngẫu nhiên, vd `openssl rand -hex 32`) |
 | `DB_ECHO` | ❌ | `true` để log SQL khi debug (mặc định `false`) |
-| `AGENT_URL` | ❌ | URL LangGraph agent để chat (mặc định `http://localhost:8123`) |
+| `SERVING_URL` | ❌ | URL serving của agent, dùng để dọn hội thoại khi xoá thread (mặc định `http://localhost:2024`) |
 | `CORS_ORIGINS` | ❌ | Origin frontend được phép, cách nhau bằng dấu phẩy (mặc định `http://localhost:5173`) |
 
 ## Running the AI Agent (Optional)
 
-Chỉ cần khi muốn thử tính năng **chat với trợ lý AI**. Agent chạy riêng bằng LangGraph CLI:
+Chỉ cần khi muốn thử tính năng **chat với trợ lý AI**. Agent là một FastAPI riêng, chạy bằng Uvicorn:
 
 ```bash
 cd app-agent
@@ -148,13 +159,38 @@ cd app-agent
 # Cài dependencies của agent
 pip install -r requirements.txt
 
-# Tạo .env cho agent (GOOGLE_API_KEY, VECTOR_DB_URL, API_BASE_URL...)
+# Tạo .env cho agent (xem bảng biến môi trường bên dưới)
 
-# Chạy LangGraph dev server (đặt port khớp với AGENT_URL của backend)
-langgraph dev --port 8123
+# Chạy serving (port khớp với SERVING_URL của backend)
+uvicorn serving.app:app --reload --port 2024
 ```
 
-`langgraph dev` mặc định chạy ở port **2024**; ở đây đặt `--port 8123` để khớp giá trị mặc định `AGENT_URL` của backend. Đảm bảo `AGENT_URL` trong `.env` backend trỏ đúng địa chỉ agent (`http://localhost:8123`) thì endpoint `/chat/agent/*` mới hoạt động.
+Biến môi trường trong `app-agent/.env` (tham khảo [`app-agent/.env.example`](./app-agent/.env.example)):
+
+| Biến | Bắt buộc | Mô tả |
+|---|:---:|---|
+| `GOOGLE_API_KEY` | ✅ | Google Gemini API key |
+| `VECTOR_DB_URL` | ✅ | PostgreSQL (`pgvector`) cho RAG. Driver **sync**: `postgresql+psycopg://` |
+| `SESSION_DATABASE_URL` | ✅ | PostgreSQL lưu lịch sử hội thoại. Driver **async**: `postgresql+asyncpg://` |
+| `API_BASE_URL` | ❌ | URL backend để agent gọi tool ngược lại (mặc định `http://localhost:8000`) |
+| `VECTOR_TABLE_NAME` | ❌ | Tên bảng chứa vector (mặc định `document_chunks`) |
+| `CORS_ORIGINS` | ❌ | Origin frontend được phép (mặc định `http://localhost:5173`) |
+
+Endpoint của serving:
+
+| Method | Đường dẫn | Vai trò |
+|---|---|---|
+| `WS` | `/agent/ws/chat/{session_id}?token=<jwt>` | Chat streaming — đẩy event `text` / `tool` / `transfer` / `done` |
+| `GET` | `/agent/sessions` | Liệt kê hội thoại |
+| `POST` | `/agent/sessions` | Tạo hội thoại mới |
+| `GET` | `/agent/sessions/{id}/messages` | Lấy lịch sử tin nhắn |
+| `DELETE` | `/agent/sessions/{id}` | Xoá hội thoại |
+
+> 💡 **JWT qua query param**: WebSocket của trình duyệt không set được header `Authorization`, nên token truyền qua `?token=`. Agent đọc token này và bơm vào các tool cần xác thực.
+
+> ⚠️ **Chạy ngoài Docker**: để `API_BASE_URL=http://localhost:8000`. Giá trị `host.docker.internal` chỉ dùng được khi agent chạy **trong container**.
+
+> ⚠️ **Driver phải khớp**: session store dùng `asyncpg`, còn RAG dùng `psycopg` (sync) — điền nhầm driver sẽ lỗi kết nối. Với Neon, nên bỏ endpoint `-pooler` để tránh xung đột prepared statement.
 
 ---
 
